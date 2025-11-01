@@ -1,0 +1,76 @@
+# ==============================
+# JetBrains Rider
+# ==============================
+.idea/
+*.sln.iml
+*.ipr
+*.iws
+
+# ==============================
+# Build results
+# ==============================
+bin/
+obj/
+out/
+*.exe
+*.dll
+*.pdb
+*.cache
+*.log
+
+# ==============================
+# User-specific files
+# ==============================
+*.user
+*.suo
+*.userprefs
+*.resharper
+*.dotCover
+
+# ==============================
+# OS files
+# ==============================
+.DS_Store
+Thumbs.db
+
+# ==============================
+# Rider-specific caches
+# ==============================
+.idea/
+*.iml
+*.iws
+out/
+
+# ==============================
+# Visual Studio Code
+# ==============================
+.vscode/
+
+# ==============================
+# NuGet
+# ==============================
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+
+# ==============================
+# Logs and temporary files
+# ==============================
+*.log
+*.tmp
+*.temp
+
+# ==============================
+# Unity (optional, in case you use Unity later)
+# ==============================
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+MemoryCaptures/
+*.csproj
+*.unityproj
+*.sln
+*.userprefs
