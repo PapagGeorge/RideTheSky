@@ -14,11 +14,11 @@ public class AbstractService : IAbstractService
     private readonly string _apiKey;
 
     public AbstractService(IGenericHttpClientFactory httpClientFactory,
-        ILogger<AbstractService> logger, IOptions<EmailReputationConfig> settings)
+        ILogger<AbstractService> logger, IOptions<EmailReputationConfig> config)
     {
         _client = httpClientFactory.CreateClient("EmailReputationApi");
         _logger = logger;
-        _apiKey = settings.Value.ApiKey;
+        _apiKey = config.Value.ApiKey;
     }
 
     public async Task<GetEmailReputationResponse> GetEmailReputationAsync(GetEmailReputationRequest request)

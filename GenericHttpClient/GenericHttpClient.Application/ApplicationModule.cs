@@ -16,9 +16,6 @@ public static class ApplicationModule
         var builder = new GenericHttpClientBuilder(services);
         configure(builder);
         
-        services.Configure<EmailReputationConfig>(
-            configuration.GetSection("EmailReputationConfig"));
-        
         // Register the factory
         services.AddSingleton<IGenericHttpClientFactory, GenericHttpClientFactory>();
         services.AddScoped<IMainService, MainService>();

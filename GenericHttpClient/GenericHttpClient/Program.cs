@@ -1,30 +1,29 @@
 using GenericHttpClient.Application;
 using GenericHttpClient.Application.Configuration;
+using GenericHttpClient.Application.Services;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+// Bind configuration sections
+builder.Services.Configure<EmailReputationConfig>(
+    builder.Configuration.GetSection("EmailReputationConfig"));
+
+builder.Services.Configure<ValidationApiConfig>(
+    builder.Configuration.GetSection("ValidationApiConfig"));
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddGenericHttpClients(builder.Configuration, clients =>
- {
-     clients
-         .AddClient("EmailReputationApi", "https://emailreputation.abstractapi.com")
-         .AddClient("ValidationApi", "https://api.apyhub.com", httpClientBuilder =>
-         {
-             // Get the API key from configuration
-             var config = builder.Configuration.GetSection("ValidationApiConfig")
-                 .Get<ValidationApiConfig>();
+{
+    var sp = builder.Services.BuildServiceProvider();
+    clients.AddClient(HttpClientsRegistry.EmailReputation(
+        sp.GetRequiredService<IOptions<EmailReputationConfig>>()));
 
-             var apiKey = config?.VatValidation?.ApiKey ?? string.Empty;
-
-             httpClientBuilder.ConfigureHttpClient(httpClient =>
-             {
-                 httpClient.DefaultRequestHeaders.Add("apy-token", apiKey);
-             });
-         });
- });
+    clients.AddClient(HttpClientsRegistry.ValidationApi(
+        sp.GetRequiredService<IOptions<ValidationApiConfig>>()));
+});
 
 var app = builder.Build();
 

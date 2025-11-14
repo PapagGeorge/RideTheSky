@@ -10,20 +10,17 @@ public class GenericHttpClientBuilder
         _services = services;
     }
 
-    public GenericHttpClientBuilder AddClient(
-        string clientName,
-        string baseAddress,
-        Action<IHttpClientBuilder>? configure = null)
+    public GenericHttpClientBuilder AddClient(HttpClientRegistration registration)
     {
-        var builder = _services.AddHttpClient(clientName, client =>
+        var builder = _services.AddHttpClient(registration.ClientName, client =>
             {
-                client.BaseAddress = new Uri(baseAddress);
+                client.BaseAddress = new Uri(registration.BaseAddress);
                 client.Timeout = TimeSpan.FromSeconds(30);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
             }).SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
-        configure?.Invoke(builder);
+        registration.Configure?.Invoke(builder);
         return this;
     }
 }
