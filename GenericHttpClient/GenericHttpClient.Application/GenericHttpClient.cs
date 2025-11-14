@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using GenericHttpClient.Application.Interfaces;
@@ -11,98 +12,122 @@ public class GenericHttpClient : IGenericHttpClient
     private readonly ILogger<GenericHttpClient> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public GenericHttpClient(
-        HttpClient httpClient,
-        ILogger<GenericHttpClient> logger)
+    public GenericHttpClient(HttpClient httpClient, ILogger<GenericHttpClient> logger)
     {
         _httpClient = httpClient;
         _logger = logger;
         _jsonOptions = new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            PropertyNameCaseInsensitive = true
         };
     }
 
     public async Task<TResponse?> GetAsync<TResponse>(string endpoint, CancellationToken ct = default)
     {
-        try
-        {
-            _logger.LogInformation("GET request to {Endpoint}", endpoint);
-            var response = await _httpClient.GetAsync(endpoint, ct);
-            return await HandleResponse<TResponse>(response, ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in GET request to {Endpoint}", endpoint);
-            throw;
-        }
+        var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+        return await SendAsync<TResponse>(request, null, ct);
     }
 
-    public async Task<TResponse?> PostAsync<TRequest, TResponse>(
-        string endpoint, TRequest request, CancellationToken ct = default)
+    public async Task<TResponse?> PostAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken ct = default)
     {
-        return await SendWithBodyAsync<TRequest, TResponse>(HttpMethod.Post, endpoint, request, ct);
+        var json = JsonSerializer.Serialize(request, _jsonOptions);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, endpoint) { Content = content };
+        return await SendAsync<TResponse>(httpRequest, json, ct);
     }
 
-    public async Task<TResponse?> PutAsync<TRequest, TResponse>(
-        string endpoint, TRequest request, CancellationToken ct = default)
+    public async Task<TResponse?> PutAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken ct = default)
     {
-        return await SendWithBodyAsync<TRequest, TResponse>(HttpMethod.Put, endpoint, request, ct);
+        var json = JsonSerializer.Serialize(request, _jsonOptions);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var httpRequest = new HttpRequestMessage(HttpMethod.Put, endpoint) { Content = content };
+        return await SendAsync<TResponse>(httpRequest, json, ct);
     }
 
-    public async Task<TResponse?> PatchAsync<TRequest, TResponse>(
-        string endpoint, TRequest request, CancellationToken ct = default)
+    public async Task<TResponse?> PatchAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken ct = default)
     {
-        return await SendWithBodyAsync<TRequest, TResponse>(HttpMethod.Patch, endpoint, request, ct);
+        var json = JsonSerializer.Serialize(request, _jsonOptions);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var httpRequest = new HttpRequestMessage(HttpMethod.Patch, endpoint) { Content = content };
+        return await SendAsync<TResponse>(httpRequest, json, ct);
     }
 
     public async Task<bool> DeleteAsync(string endpoint, CancellationToken ct = default)
     {
+        var request = new HttpRequestMessage(HttpMethod.Delete, endpoint);
+        var response = await _httpClient.SendAsync(request, ct);
+        await LogResponseAsync(response, request);
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
+    private async Task<TResponse?> SendAsync<TResponse>(HttpRequestMessage request, string? requestBody, CancellationToken ct)
+    {
         try
         {
-            _logger.LogInformation("DELETE request to {Endpoint}", endpoint);
-            var response = await _httpClient.DeleteAsync(endpoint, ct);
-            response.EnsureSuccessStatusCode();
-            return true;
+            await LogRequestAsync(request, requestBody);
+            var response = await _httpClient.SendAsync(request, ct);
+            return await HandleResponseWithLogging<TResponse>(response, request, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in DELETE request to {Endpoint}", endpoint);
+            _logger.LogError(ex, "Error in {Method} request to {Url}", request.Method, GetFullRequestUrl(request));
             throw;
         }
     }
 
-    private async Task<TResponse?> SendWithBodyAsync<TRequest, TResponse>(
-        HttpMethod method, string endpoint, TRequest request, CancellationToken ct)
+    private async Task<TResponse?> HandleResponseWithLogging<TResponse>(HttpResponseMessage response, HttpRequestMessage request, CancellationToken ct)
     {
-        try
-        {
-            _logger.LogInformation("{Method} request to {Endpoint}", method, endpoint);
-            var json = JsonSerializer.Serialize(request, _jsonOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var httpRequest = new HttpRequestMessage(method, endpoint) { Content = content };
-            var response = await _httpClient.SendAsync(httpRequest, ct);
-            return await HandleResponse<TResponse>(response, ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in {Method} request to {Endpoint}", method, endpoint);
-            throw;
-        }
-    }
+        var responseContent = await response.Content.ReadAsStringAsync(ct);
+        await LogResponseAsync(response, request, responseContent);
 
-    private async Task<TResponse?> HandleResponse<TResponse>(
-        HttpResponseMessage response, CancellationToken ct)
-    {
         if (!response.IsSuccessStatusCode)
         {
-            var errorContent = await response.Content.ReadAsStringAsync(ct);
-            _logger.LogWarning("Request failed with status {StatusCode}: {Content}", 
-                response.StatusCode, errorContent);
-            response.EnsureSuccessStatusCode();
+            throw new HttpRequestException($"Request failed with status code {response.StatusCode}");
         }
-        var contentStream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonSerializer.DeserializeAsync<TResponse>(contentStream, _jsonOptions, ct);
+
+        if (string.IsNullOrWhiteSpace(responseContent))
+            return default;
+
+        return JsonSerializer.Deserialize<TResponse>(responseContent, _jsonOptions);
+    }
+
+    private async Task LogRequestAsync(HttpRequestMessage request, string? body)
+    {
+        var headers = MaskSensitiveHeaders(request.Headers);
+        var url = GetFullRequestUrl(request);
+        _logger.LogInformation(
+            "HTTP Request {Method} {Url}\nHeaders: {Headers}\nBody: {Body}",
+            request.Method, url, headers, body ?? "<empty>");
+    }
+
+    private async Task LogResponseAsync(HttpResponseMessage response, HttpRequestMessage request, string? body = null)
+    {
+        var headers = MaskSensitiveHeaders(response.Headers);
+        var url = GetFullRequestUrl(request);
+        _logger.LogInformation(
+            "HTTP Response {StatusCode} for {Method} {Url}\nHeaders: {Headers}\nBody: {Body}",
+            response.StatusCode, request.Method, url, headers, body ?? "<empty>");
+    }
+
+    private string GetFullRequestUrl(HttpRequestMessage request)
+    {
+        if (request.RequestUri.IsAbsoluteUri)
+            return request.RequestUri.ToString();
+
+        var baseAddress = _httpClient.BaseAddress?.ToString().TrimEnd('/') ?? "";
+        var relativePath = request.RequestUri?.ToString().TrimStart('/') ?? "";
+        return $"{baseAddress}/{relativePath}";
+    }
+
+    private static string MaskSensitiveHeaders(HttpHeaders headers)
+    {
+        return string.Join(", ", headers.Select(h =>
+        {
+            var value = h.Key.ToLower().Contains("token") || h.Key.ToLower().Contains("apikey")
+                ? "****"
+                : string.Join(";", h.Value);
+            return $"{h.Key}: {value}";
+        }));
     }
 }
