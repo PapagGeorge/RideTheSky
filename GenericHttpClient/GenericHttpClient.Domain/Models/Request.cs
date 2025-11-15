@@ -1,4 +1,4 @@
-namespace GenericHttpClient.Domain.Requests;
+namespace GenericHttpClient.Domain.Models;
 
 public class Request<T>
 {

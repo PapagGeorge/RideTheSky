@@ -3,7 +3,6 @@ using GenericHttpClient.Application.Interfaces;
 using GenericHttpClient.Domain.Models.GetEmailReputation;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 
 namespace GenericHttpClient.Application.Services;
 

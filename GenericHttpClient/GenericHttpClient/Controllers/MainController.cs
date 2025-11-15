@@ -1,4 +1,5 @@
 using GenericHttpClient.Application.Interfaces;
+using GenericHttpClient.Domain.Models.GetDailyRates;
 using GenericHttpClient.Domain.Models.GetEmailReputation;
 using GenericHttpClient.Domain.Models.ValidateVat;
 using Microsoft.AspNetCore.Mvc;
@@ -27,6 +28,13 @@ namespace GenericHttpClient.Api.Controllers
         public async Task<ActionResult<VallidateVatResponse>> VallidateVat(VallidateVatRequest request)
         {
             var response = await _mainService.ValidateVatAsync(request);
+            return Ok(response);
+        }
+        
+        [HttpPost("getDailyRates")]
+        public async Task<ActionResult<GesmesEnvelope>> GetDailyRates()
+        {
+            var response = await _mainService.GetDailyRatesAsync();
             return Ok(response);
         }
     }

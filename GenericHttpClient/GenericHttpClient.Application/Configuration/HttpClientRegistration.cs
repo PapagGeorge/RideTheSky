@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace GenericHttpClient.Application;
+namespace GenericHttpClient.Application.Configuration;
 
 public class HttpClientRegistration
 {

@@ -1,7 +1,7 @@
 using GenericHttpClient.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 
-namespace GenericHttpClient.Application;
+namespace GenericHttpClient.Application.HttpClientsInfrastructure;
 
 public class GenericHttpClientFactory : IGenericHttpClientFactory
 {

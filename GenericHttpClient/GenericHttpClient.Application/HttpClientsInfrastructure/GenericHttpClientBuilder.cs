@@ -1,5 +1,7 @@
+using GenericHttpClient.Application.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-namespace GenericHttpClient.Application;
+
+namespace GenericHttpClient.Application.HttpClientsInfrastructure;
 
 public class GenericHttpClientBuilder
 {

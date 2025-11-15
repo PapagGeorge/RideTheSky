@@ -35,5 +35,16 @@ public static class HttpClientsRegistry
             }
         };
     }
+    
+    public static HttpClientRegistration ECB(IOptions<ECBConfig> options)
+    {
+        var config = options.Value;
+
+        return new HttpClientRegistration
+        {
+            ClientName = config.ClientName,
+            BaseAddress = config.BaseAddress
+        };
+    }
 }
 

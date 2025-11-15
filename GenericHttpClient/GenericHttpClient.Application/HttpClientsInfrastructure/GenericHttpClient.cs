@@ -1,10 +1,11 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Xml.Serialization;
 using GenericHttpClient.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 
-namespace GenericHttpClient.Application;
+namespace GenericHttpClient.Application.HttpClientsInfrastructure;
 
 public class GenericHttpClient : IGenericHttpClient
 {
@@ -59,6 +60,27 @@ public class GenericHttpClient : IGenericHttpClient
         await LogResponseAsync(response, request);
         response.EnsureSuccessStatusCode();
         return true;
+    }
+    
+    public async Task<TResponse> GetXmlAsync<TResponse>(string endpoint, CancellationToken ct = default)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+        try
+        {
+            await LogRequestAsync(request, null);
+            var response = await _httpClient.SendAsync(request, ct);
+            var content = await response.Content.ReadAsStringAsync(ct);
+            await LogResponseAsync(response, request, content);
+            response.EnsureSuccessStatusCode();
+            var serializer = new XmlSerializer(typeof(TResponse));
+            using var reader = new StringReader(content);
+            return (TResponse)serializer.Deserialize(reader)!;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to GET or deserialize XML from {Url}", GetFullRequestUrl(request));
+            throw;
+        }
     }
 
     private async Task<TResponse?> SendAsync<TResponse>(HttpRequestMessage request, string? requestBody, CancellationToken ct)

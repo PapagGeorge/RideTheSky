@@ -1,4 +1,4 @@
-namespace GenericHttpClient.Domain.Responses;
+namespace GenericHttpClient.Domain.Models;
 
 public class Response<T>
 {

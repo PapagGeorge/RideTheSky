@@ -7,4 +7,5 @@ public interface IGenericHttpClient
     Task<TResponse?> PutAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken ct = default);
     Task<TResponse?> PatchAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken ct = default);
     Task<bool> DeleteAsync(string endpoint, CancellationToken ct = default);
+    Task<TResponse> GetXmlAsync<TResponse>(string endpoint, CancellationToken ct = default);
 }

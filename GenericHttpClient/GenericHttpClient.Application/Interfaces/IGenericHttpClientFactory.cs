@@ -2,5 +2,5 @@ namespace GenericHttpClient.Application.Interfaces;
 
 public interface IGenericHttpClientFactory
 {
-    GenericHttpClient CreateClient(string name);
+    HttpClientsInfrastructure.GenericHttpClient CreateClient(string name);
 }
