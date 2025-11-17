@@ -1,4 +1,5 @@
 using GenericHttpClient.Domain.DBModels;
+using GenericHttpClient.Domain.Models.Wallet;
 using Microsoft.EntityFrameworkCore;
 
 namespace GenericHttpClient.Infrastructure;
@@ -6,6 +7,7 @@ namespace GenericHttpClient.Infrastructure;
 public class ExchangeRateDbContext : DbContext
 {
     public DbSet<ExchangeRate> ExchangeRates { get; set; }
+    public DbSet<Wallet> Wallets => Set<Wallet>();
 
     public ExchangeRateDbContext(DbContextOptions<ExchangeRateDbContext> options)
         : base(options) { }
